@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
+import { getApiUrl } from '../config/api';
 
 function VerifyProduct() {
   const [code, setCode] = useState('');
@@ -22,7 +23,7 @@ function VerifyProduct() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/verification/verify', {
+      const response = await fetch(getApiUrl('/api/verification/verify'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

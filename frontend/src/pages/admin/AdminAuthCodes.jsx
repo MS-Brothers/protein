@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 const AdminAuthCodes = () => {
   const [file, setFile] = useState(null);
@@ -34,7 +35,7 @@ const AdminAuthCodes = () => {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth-codes/upload', {
+      const response = await fetch(getApiUrl('/api/admin/auth-codes/upload'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -63,7 +64,7 @@ const AdminAuthCodes = () => {
     setIsClearing(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth-codes/clear-all', {
+      const response = await fetch(getApiUrl('/api/admin/auth-codes/clear-all'), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

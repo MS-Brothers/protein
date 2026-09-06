@@ -63,8 +63,7 @@ export default function LabelEditor() {
       setImageLoaded(true);
     };
     img.onerror = () => {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      img.src = `${apiUrl}/uploads/templates/template.jpeg`;
+      img.src = getApiUrl('/uploads/templates/template.jpeg');
     };
     img.src = TEMPLATE_SRC;
 

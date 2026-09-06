@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
+import { getApiUrl } from '../../config/api';
 import '../../App.css';
 
 function AdminLogin() {
@@ -22,7 +23,7 @@ function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth/login', {
+      const response = await fetch(getApiUrl('/api/admin/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

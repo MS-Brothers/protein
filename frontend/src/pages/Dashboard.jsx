@@ -2,6 +2,7 @@ import { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
+import { getApiUrl } from '../config/api';
 
 function Dashboard() {
   const { user, token, setUser } = useContext(AuthContext);
@@ -27,7 +28,7 @@ function Dashboard() {
     setEditSuccess('');
 
     try {
-      const res = await fetch(import.meta.env.VITE_API_URL + '/api/auth/profile', {
+      const res = await fetch(getApiUrl('/api/auth/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

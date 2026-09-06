@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { getApiUrl } from '../config/api';
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -28,7 +29,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/auth/login', {
+      const response = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

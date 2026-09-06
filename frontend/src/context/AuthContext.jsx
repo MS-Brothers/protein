@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
+import { getApiUrl } from '../config/api';
 
 export const AuthContext = createContext();
 
@@ -13,7 +14,7 @@ export const AuthProvider = ({ children }) => {
       if (storedToken) {
         setToken(storedToken);
         try {
-          const res = await fetch(import.meta.env.VITE_API_URL + '/api/auth/me', {
+          const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: { 'Authorization': `Bearer ${storedToken}` }
           });
           const data = await res.json();

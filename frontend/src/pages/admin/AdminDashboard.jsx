@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -19,7 +20,7 @@ function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/dashboard/stats', {
+        const response = await fetch(getApiUrl('/api/admin/dashboard/stats'), {
           headers: {
             'Authorization': `Bearer ${adminToken}`
           }

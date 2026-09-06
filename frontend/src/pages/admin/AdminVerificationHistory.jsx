@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 const AdminVerificationHistory = () => {
   const [history, setHistory] = useState([]);
@@ -25,7 +26,7 @@ const AdminVerificationHistory = () => {
         status
       });
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/verification-history?${params.toString()}`, {
+      const response = await fetch(getApiUrl(`/api/admin/verification-history?${params.toString()}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

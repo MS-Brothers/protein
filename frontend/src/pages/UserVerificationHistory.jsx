@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
+import { getApiUrl } from '../config/api';
 
 function UserVerificationHistory() {
   const [history, setHistory] = useState([]);
@@ -16,7 +17,7 @@ function UserVerificationHistory() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/verification/history', {
+      const response = await fetch(getApiUrl('/api/verification/history'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -2,6 +2,7 @@ import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 function AdminProfile() {
   const { admin, setAdmin, adminToken, adminLogout } = useContext(AdminAuthContext);
@@ -37,7 +38,7 @@ function AdminProfile() {
     setProfileLoading(true);
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth/profile', {
+      const response = await fetch(getApiUrl('/api/admin/auth/profile'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ function AdminProfile() {
     setLoading(true);
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth/change-password', {
+      const response = await fetch(getApiUrl('/api/admin/auth/change-password'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

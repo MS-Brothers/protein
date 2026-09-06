@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
+import { getApiUrl } from '../config/api';
 
 export const AdminAuthContext = createContext();
 
@@ -22,7 +23,7 @@ export const AdminAuthProvider = ({ children }) => {
           return;
         }
 
-        const res = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth/profile', {
+        const res = await fetch(getApiUrl('/api/admin/auth/profile'), {
           headers: {
             'Authorization': `Bearer ${adminToken}`
           }

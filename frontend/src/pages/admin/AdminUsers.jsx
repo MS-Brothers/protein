@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminAuthContext } from '../../context/AdminAuthContext';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -24,7 +25,7 @@ function AdminUsers() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/users', {
+      const response = await fetch(getApiUrl('/api/admin/users'), {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         }

@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { getApiUrl } from '../config/api';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -34,7 +35,7 @@ function Register() {
     }
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/auth/register', {
+      const response = await fetch(getApiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

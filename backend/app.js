@@ -49,13 +49,25 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// SPA wildcard route fallback (serves index.html for React Router)
+// Root / SPA wildcard route fallback (serves index.html for React Router or API Status)
 app.get('*', (req, res) => {
+  const fs = require('fs');
   const indexPath = path.join(frontendDistPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      res.status(404).send('Not Found');
-    }
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  
+  if (req.path === '/' || req.path === '/api') {
+    return res.json({
+      success: true,
+      message: 'Global Horizon Exim - Protein Authentication API Server is running',
+      version: '1.0.0'
+    });
+  }
+
+  res.status(404).json({
+    success: false,
+    message: `Resource ${req.originalUrl} not found. Ensure frontend is built or check the API route.`
   });
 });
 

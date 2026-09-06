@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getApiUrl } from '../config/api';
 import '../App.css';
 
 function Home() {
@@ -9,8 +10,7 @@ function Home() {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiUrl}/api/health`);
+        const response = await fetch(getApiUrl('/api/health'));
         const data = await response.json();
         
         if (data.success) {

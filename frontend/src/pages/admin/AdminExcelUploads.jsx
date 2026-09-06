@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { getApiUrl } from '../../config/api';
 
 const AdminExcelUploads = () => {
   const [uploads, setUploads] = useState([]);
@@ -17,7 +18,7 @@ const AdminExcelUploads = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(import.meta.env.VITE_API_URL + '/api/admin/auth-codes/excel-uploads', {
+      const response = await fetch(getApiUrl('/api/admin/auth-codes/excel-uploads'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -38,7 +39,7 @@ const AdminExcelUploads = () => {
   const fetchUploadDetails = async (id) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(import.meta.env.VITE_API_URL + `/api/admin/auth-codes/excel-uploads/${id}`, {
+      const response = await fetch(getApiUrl(`/api/admin/auth-codes/excel-uploads/${id}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -59,7 +60,7 @@ const AdminExcelUploads = () => {
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(import.meta.env.VITE_API_URL + `/api/admin/auth-codes/excel-uploads/${deleteConfirmId}`, {
+      const response = await fetch(getApiUrl(`/api/admin/auth-codes/excel-uploads/${deleteConfirmId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
