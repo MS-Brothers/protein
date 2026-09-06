@@ -40,12 +40,12 @@ app.use('/api/admin/labels', labelRoutes);
 // Serve static frontend assets from possible dist locations
 const fs = require('fs');
 const possibleDistPaths = [
-  path.join(__dirname, '../frontend/dist'),
   path.join(__dirname, 'public'),
+  path.join(__dirname, '../frontend/dist'),
   path.join(__dirname, 'dist')
 ];
 
-const resolvedFrontendPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+const resolvedFrontendPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || path.join(__dirname, 'public');
 app.use(express.static(resolvedFrontendPath));
 
 // 404 Handler for undefined API routes
