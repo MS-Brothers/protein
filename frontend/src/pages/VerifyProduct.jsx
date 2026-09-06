@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
 import { getApiUrl } from '../config/api';
 
@@ -7,28 +7,36 @@ function VerifyProduct() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    setResult(null);
+  useEffect(() => {
+    const initialCode = searchParams.get('code');
+    if (initialCode) {
+      const clean = initialCode.trim().toUpperCase();
+      setCode(clean);
+      executeVerification(clean);
+    }
+  }, [searchParams]);
 
-    const cleanCode = code.trim().toUpperCase();
+  const executeVerification = async (targetCode) => {
+    const cleanCode = (targetCode || code).trim().toUpperCase();
     if (!cleanCode) {
       setResult({ type: 'error', message: 'Please enter an authentication code.' });
       return;
     }
 
     setLoading(true);
+    setResult(null);
 
     try {
       const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch(getApiUrl('/api/verification/verify'), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ authenticationCode: cleanCode })
       });
 
@@ -55,6 +63,11 @@ function VerifyProduct() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    executeVerification(code);
   };
 
   return (
@@ -242,11 +255,26 @@ function VerifyProduct() {
                         <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{result.data.batchNumber}</span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: '8px' }}>
                       <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Verification Time</span>
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         {new Date(result.data.verifiedAt || Date.now()).toLocaleString()}
                       </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Authenticity Certificate</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const text = `Verified 100% Genuine Protein Product\nCode: ${result.data.authenticationCode}\nVerified at: ${new Date(result.data.verifiedAt || Date.now()).toLocaleString()}\nGlobal Horizon Exim`;
+                          navigator.clipboard.writeText(text);
+                          alert('Authentication certificate copied to clipboard!');
+                        }}
+                        className="btn btn-outline"
+                        style={{ minHeight: '32px', padding: '4px 12px', fontSize: '12px', borderRadius: '6px' }}
+                      >
+                        Copy Certificate
+                      </button>
                     </div>
                   </div>
                 </div>

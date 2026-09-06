@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getApiUrl } from '../config/api';
 import '../App.css';
 
 function Home() {
   const [backendStatus, setBackendStatus] = useState('Checking...');
   const [dbStatus, setDbStatus] = useState('Checking...');
+  const [quickCode, setQuickCode] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -29,11 +31,18 @@ function Home() {
     checkHealth();
   }, []);
 
+  const handleQuickVerify = (e) => {
+    e.preventDefault();
+    const clean = quickCode.trim().toUpperCase();
+    if (!clean) return;
+    navigate(`/verify?code=${encodeURIComponent(clean)}`);
+  };
+
   return (
     <div className="home-page-wrapper">
       <div className="home-card-main">
         {/* Brand Header */}
-        <div className="logo-container" style={{ marginBottom: '1.5rem' }}>
+        <div className="logo-container" style={{ marginBottom: '1.25rem' }}>
           <div className="logo-circle">
             <img 
               src="/logo.png" 
@@ -41,8 +50,65 @@ function Home() {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
             />
           </div>
-          <h2>GLOBAL HORIZON EXIM</h2>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '1.85rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#ffffff' }}>
+            GLOBAL HORIZON EXIM
+          </h1>
           <p className="company-subtitle">Protein Authentication Platform</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(59, 130, 246, 0.12)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '9999px', fontSize: '0.8rem', color: '#93c5fd', marginTop: '6px' }}>
+            <span className="dot dot-success" style={{ width: '6px', height: '6px' }}></span>
+            <span>Official Importer & Exporter Verification Node</span>
+          </div>
+        </div>
+
+        {/* Quick Instant Verification Bar */}
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            borderRadius: '20px',
+            padding: '1.25rem',
+            marginBottom: '1.75rem',
+            boxShadow: '0 12px 30px -10px rgba(37, 99, 235, 0.35)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
+            <svg style={{ width: '20px', height: '20px', color: '#60a5fa' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#f8fafc', letterSpacing: '0.3px' }}>
+              Quick Authenticate Protein Product
+            </span>
+          </div>
+          <form onSubmit={handleQuickVerify} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <input 
+              type="text"
+              placeholder="Enter Scratch Code (e.g. GHX-040260)..."
+              value={quickCode}
+              onChange={(e) => setQuickCode(e.target.value.toUpperCase())}
+              style={{
+                flex: '1 1 240px',
+                minHeight: '46px',
+                background: 'rgba(2, 6, 23, 0.75)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                padding: '0 1rem',
+                color: '#ffffff',
+                fontSize: '1rem',
+                fontWeight: '700',
+                letterSpacing: '1px',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                outline: 'none'
+              }}
+            />
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              style={{ minHeight: '46px', padding: '0 1.5rem', borderRadius: '12px', fontWeight: '700', letterSpacing: '0.5px', flex: '0 0 auto' }}
+            >
+              Verify Now &rarr;
+            </button>
+          </form>
         </div>
 
         {/* Portal Access Grid */}
@@ -87,21 +153,21 @@ function Home() {
 
         {/* System Status Indicators */}
         <div className="status-board-home">
-          <div className="status-header">System Health Status</div>
+          <div className="status-header">Live Server & Database Health</div>
           <div className="status-row">
             <div className="status-chip">
               <span className="dot dot-success"></span>
-              <span className="chip-label">Frontend:</span>
+              <span className="chip-label">Frontend SPA:</span>
               <span className="chip-value">Active</span>
             </div>
             <div className="status-chip">
               <span className={`dot ${backendStatus === 'Connected' ? 'dot-success' : 'dot-error'}`}></span>
-              <span className="chip-label">Backend API:</span>
+              <span className="chip-label">Backend Node:</span>
               <span className="chip-value">{backendStatus}</span>
             </div>
             <div className="status-chip">
               <span className={`dot ${dbStatus === 'Connected' ? 'dot-success' : 'dot-error'}`}></span>
-              <span className="chip-label">Database:</span>
+              <span className="chip-label">MySQL DB:</span>
               <span className="chip-value">{dbStatus}</span>
             </div>
           </div>
