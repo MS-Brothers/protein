@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Label Editor</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <div class="editor-panel">
+      <div class="editor-header">
+        <h1>Label Editor</h1>
+        <p>Dynamic Values Overlay</p>
+      </div>
+      
+      <div class="inputs-container" id="inputs-container">
+        <!-- Inputs will be injected via JS -->
+      </div>
+      
+      <div class="calibration-section" style="padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="font-size: 12px; text-transform: uppercase; margin-bottom: 10px; color: #94a3b8;">Main Table Calibration</h3>
+        <div class="input-group">
+          <label>Global X Position: <span id="val-x">1132</span></label>
+          <input type="range" id="calib-x" min="800" max="1300" value="1132">
+        </div>
+        <div class="input-group">
+          <label>Global Y Position: <span id="val-y">304</span></label>
+          <input type="range" id="calib-y" min="150" max="400" value="304">
+        </div>
+        <div class="input-group">
+          <label>Row Spacing: <span id="val-spacing">47</span></label>
+          <input type="range" id="calib-spacing" min="30" max="60" value="47">
+        </div>
+
+        <h3 style="font-size: 12px; text-transform: uppercase; margin: 15px 0 10px; color: #94a3b8;">MRP Position (Independent)</h3>
+        <div class="input-group">
+          <label>MRP X Position: <span id="val-mrp-x">1191</span></label>
+          <input type="range" id="calib-mrp-x" min="800" max="1300" value="1191">
+        </div>
+        <div class="input-group">
+          <label>MRP Y Position: <span id="val-mrp-y">736</span></label>
+          <input type="range" id="calib-mrp-y" min="400" max="900" value="736">
+        </div>
+
+        <div class="input-group" style="margin-bottom:0; margin-top: 15px;">
+          <label>Mask Style</label>
+          <select id="calib-mask" style="width:100%; background: var(--input-bg); border: 1px solid var(--border-color); color: white; padding: 5px; border-radius: 4px;">
+            <option value="solid">Solid Gray (Clean Background)</option>
+            <option value="stretch" selected>Holographic Stretch</option>
+            <option value="none">No Mask</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="actions-container">
+        <button id="btn-download-png" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+          </svg>
+          Download PNG
+        </button>
+        <button id="btn-download-pdf" class="btn btn-secondary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z"/>
+          </svg>
+          Download PDF
+        </button>
+      </div>
+
+      <div class="settings-toggle">
+        <label>
+          <input type="checkbox" id="show-debug"> Show Layout Debug Boxes
+        </label>
+      </div>
+    </div>
+    
+    <div class="preview-panel">
+      <div class="canvas-wrapper">
+        <canvas id="label-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

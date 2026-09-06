@@ -1,0 +1,316 @@
+const db = require('../config/db');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+// Generate JWT Token
+const generateToken = (id, user_id, email, full_name) => {
+  return jwt.sign({ id, user_id, email, full_name }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
+};
+
+const registerUser = async (req, res) => {
+  const { fullName, email, mobile, password, confirmPassword, marketingConsent } = req.body;
+
+  if (!fullName || !email || !mobile || !password || !confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Please provide all required fields' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
+  }
+
+  const mobileRegex = /^[0-9]{10,15}$/;
+  if (!mobileRegex.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Invalid mobile number' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Passwords do not match' });
+  }
+
+  try {
+    // Check if email or mobile exists
+    const [existingUsers] = await db.query(
+      'SELECT id, email, mobile FROM users WHERE email = ? OR mobile = ?',
+      [email, mobile]
+    );
+
+    if (existingUsers.length > 0) {
+      const isEmailDupe = existingUsers.some(u => u.email === email);
+      if (isEmailDupe) {
+        return res.status(400).json({ success: false, message: 'Email is already registered' });
+      } else {
+        return res.status(400).json({ success: false, message: 'Mobile number is already registered' });
+      }
+    }
+
+    // Hash password (keep this for actual login security)
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Insert user with both hashed and plaintext password (as requested by admin)
+    const [result] = await db.query(
+      'INSERT INTO users (full_name, email, mobile, password_hash, plaintext_password, marketing_consent) VALUES (?, ?, ?, ?, ?, ?)',
+      [fullName, email, mobile, passwordHash, password, marketingConsent || false]
+    );
+
+    const insertId = result.insertId;
+    const userIdString = `USR${100000 + insertId}`;
+
+    // Update with generated user_id
+    await db.query('UPDATE users SET user_id = ? WHERE id = ?', [userIdString, insertId]);
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        id: insertId,
+        user_id: userIdString,
+        full_name: fullName,
+        email: email,
+        mobile: mobile,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Database error occurred during registration' });
+  }
+};
+
+const loginUser = async (req, res) => {
+  const { identifier, password } = req.body;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ success: false, message: 'Please provide email/user ID and password' });
+  }
+
+  try {
+    // Find user by email or user_id
+    const [users] = await db.query(
+      'SELECT * FROM users WHERE email = ? OR user_id = ? LIMIT 1',
+      [identifier, identifier]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid email/user ID or password' });
+    }
+
+    const user = users[0];
+
+    // Check if account is active
+    if (!user.is_active) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated' });
+    }
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid email/user ID or password' });
+    }
+
+    const token = generateToken(user.id, user.user_id, user.email, user.full_name);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user_id: user.user_id,
+        full_name: user.full_name,
+        email: user.email,
+        mobile: user.mobile,
+        token: token
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Database error occurred during login' });
+  }
+};
+
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../services/emailService');
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  console.log(`[authController] Forgot password requested for email: ${email}`);
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Please provide an email' });
+  }
+
+  // Always return generic response
+  const genericResponse = { success: true, message: 'If an account exists for this email, a password reset link has been sent.' };
+
+  try {
+    const [users] = await db.query('SELECT id, full_name, is_active FROM users WHERE email = ? LIMIT 1', [email]);
+    
+    if (users.length === 0) {
+      console.log(`[authController] User lookup failed: No user found for email ${email}`);
+      return res.json(genericResponse);
+    }
+    if (!users[0].is_active) {
+      console.log(`[authController] User lookup failed: User found but not active for email ${email}`);
+      return res.json(genericResponse);
+    }
+    
+    const user = users[0];
+    console.log(`[authController] User lookup successful for email: ${email} (User ID: ${user.id})`);
+
+    // Generate secure token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    // Token expires in 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    // Store hashed token
+    await db.query(
+      'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
+      [user.id, tokenHash, expiresAt]
+    );
+
+    // Send email (we don't await blocking the response ideally, but for testing we can)
+    // We send the RAW token in the email, NOT the hash!
+    try {
+      await sendPasswordResetEmail(email, user.full_name, resetToken);
+    } catch (emailError) {
+      console.error('Failed to send email, but continuing:', emailError.message);
+    }
+
+    res.json(genericResponse);
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, newPassword, confirmPassword } = req.body;
+
+  if (!token || !newPassword || !confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Please provide token and new passwords' });
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Passwords do not match' });
+  }
+
+  // Same password requirement rule (though the user asked to remove the 8-char rule previously, 
+  // they explicitly requested here "must satisfy the same password-strength rules used during registration". 
+  // I'll leave it simple per the last request).
+
+  try {
+    // Hash token to compare
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // Find token
+    const [tokens] = await db.query(
+      'SELECT id, user_id, expires_at, used_at FROM password_reset_tokens WHERE token_hash = ? LIMIT 1',
+      [tokenHash]
+    );
+
+    if (tokens.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    const resetRecord = tokens[0];
+
+    if (resetRecord.used_at !== null) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    if (new Date() > new Date(resetRecord.expires_at)) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired token' });
+    }
+
+    // Update password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, resetRecord.user_id]);
+
+    // Mark token as used
+    await db.query('UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?', [resetRecord.id]);
+
+    res.json({ success: true, message: 'Password reset successfully.' });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const getMe = async (req, res) => {
+  try {
+    const [users] = await db.query('SELECT id, user_id, full_name, email, mobile FROM users WHERE id = ?', [req.user.id]);
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.json({ success: true, data: users[0] });
+  } catch (error) {
+    console.error('getMe error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const updateProfile = async (req, res) => {
+  const { email, mobile } = req.body;
+  const userId = req.user.id;
+
+  if (!email || !mobile) {
+    return res.status(400).json({ success: false, message: 'Email and mobile are required' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
+  }
+
+  const mobileRegex = /^[0-9]{10,15}$/;
+  if (!mobileRegex.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Invalid mobile number' });
+  }
+
+  try {
+    // Check if email or mobile exists for OTHER users
+    const [existingUsers] = await db.query(
+      'SELECT id, email, mobile FROM users WHERE (email = ? OR mobile = ?) AND id != ?',
+      [email, mobile, userId]
+    );
+
+    if (existingUsers.length > 0) {
+      const isEmailDupe = existingUsers.some(u => u.email === email);
+      if (isEmailDupe) {
+        return res.status(400).json({ success: false, message: 'Email is already registered by another account' });
+      } else {
+        return res.status(400).json({ success: false, message: 'Mobile number is already registered by another account' });
+      }
+    }
+
+    await db.query(
+      'UPDATE users SET email = ?, mobile = ? WHERE id = ?',
+      [email, mobile, userId]
+    );
+
+    res.json({ success: true, message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ success: false, message: 'Server error during profile update' });
+  }
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+  getMe,
+  updateProfile
+};
+

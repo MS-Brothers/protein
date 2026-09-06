@@ -1,0 +1,15 @@
+# Global Horizon Exim - robots.txt
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /register
+Allow: /verify
+Allow: /support
+Allow: /home
+
+# Disallow Admin area indexing
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://globalhorizonexim.co.in/sitemap.xml
