@@ -171,29 +171,32 @@ const { sendPasswordResetEmail } = require('../services/emailService');
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  console.log(`[authController] Forgot password requested for email: ${email}`);
-
   if (!email) {
-    return res.status(400).json({ success: false, message: 'Please provide an email' });
+    return res.status(400).json({ success: false, message: 'Please provide an email address' });
   }
 
-  // Always return generic response
-  const genericResponse = { success: true, message: 'If an account exists for this email, a password reset link has been sent.' };
+  const cleanEmail = email.trim().toLowerCase();
+  console.log(`[authController] Forgot password requested for email: ${cleanEmail}`);
 
   try {
-    const [users] = await db.query('SELECT id, full_name, is_active FROM users WHERE email = ? LIMIT 1', [email]);
+    const [users] = await db.query('SELECT id, full_name, is_active FROM users WHERE LOWER(email) = ? LIMIT 1', [cleanEmail]);
     
     if (users.length === 0) {
-      console.log(`[authController] User lookup failed: No user found for email ${email}`);
-      return res.json(genericResponse);
+      console.log(`[authController] No user found for email: ${cleanEmail}`);
+      return res.status(404).json({
+        success: false,
+        message: 'No registered account found with this email. Please register first.'
+      });
     }
-    if (!users[0].is_active) {
-      console.log(`[authController] User lookup failed: User found but not active for email ${email}`);
-      return res.json(genericResponse);
-    }
-    
+
     const user = users[0];
-    console.log(`[authController] User lookup successful for email: ${email} (User ID: ${user.id})`);
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account is deactivated. Please contact customer support.'
+      });
+    }
 
     // Generate secure token
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -208,19 +211,25 @@ const forgotPassword = async (req, res) => {
       [user.id, tokenHash, expiresAt]
     );
 
-    // Send email (we don't await blocking the response ideally, but for testing we can)
-    // We send the RAW token in the email, NOT the hash!
+    // Send email via Hostinger SMTP
     try {
-      await sendPasswordResetEmail(email, user.full_name, resetToken);
+      await sendPasswordResetEmail(cleanEmail, user.full_name, resetToken);
     } catch (emailError) {
-      console.error('Failed to send email, but continuing:', emailError.message);
+      console.error('[authController] SMTP Delivery Error:', emailError);
+      return res.status(500).json({
+        success: false,
+        message: `Email sending failed: ${emailError.message}. Check spam folder or contact support.`
+      });
     }
 
-    res.json(genericResponse);
+    res.json({
+      success: true,
+      message: 'Password reset link has been sent to your email! (Please check your Inbox and Spam folder)'
+    });
 
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: `Server error: ${error.message}` });
   }
 };
 

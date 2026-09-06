@@ -2,15 +2,19 @@ const nodemailer = require('nodemailer');
 
 // Create reusable transporter object using SMTP transport
 const createTransporter = () => {
-  const isSecure = process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465';
+  const port = parseInt(process.env.SMTP_PORT, 10) || 465;
+  const isSecure = process.env.SMTP_SECURE === 'true' || port === 465;
+  const smtpUser = process.env.SMTP_USER || 'contact@globalhorizonexim.co.in';
+  const smtpPass = process.env.SMTP_PASS || 'Surekha@2004#';
+  const smtpHost = process.env.SMTP_HOST || 'smtp.hostinger.com';
   
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-    port: parseInt(process.env.SMTP_PORT, 10) || 465,
+    host: smtpHost,
+    port: port,
     secure: isSecure, // true for 465 (SSL), false for 587 (TLS/STARTTLS)
     auth: {
-      user: process.env.SMTP_USER || 'contact@globalhorizonexim.co.in',
-      pass: process.env.SMTP_PASS || 'Surekha@2004#'
+      user: smtpUser,
+      pass: smtpPass
     },
     tls: {
       rejectUnauthorized: false // Avoid self-signed certificate rejection issues
@@ -23,7 +27,8 @@ const sendPasswordResetEmail = async (toEmail, userName, resetToken) => {
     const transporter = createTransporter();
     const frontendUrl = process.env.FRONTEND_URL || 'https://globalhorizonexim.co.in';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
-    const fromAddress = process.env.EMAIL_FROM || '"Global Horizon Exim" <contact@globalhorizonexim.co.in>';
+    const smtpUser = process.env.SMTP_USER || 'contact@globalhorizonexim.co.in';
+    const fromAddress = process.env.EMAIL_FROM || `"Global Horizon Exim" <${smtpUser}>`;
 
     console.log(`[emailService] Sending password reset email to: ${toEmail} via SMTP (${process.env.SMTP_HOST || 'smtp.hostinger.com'})`);
 
