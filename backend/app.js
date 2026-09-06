@@ -37,9 +37,16 @@ app.use('/api/admin/verification-history', adminVerificationHistoryRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/labels', labelRoutes);
 
-// Serve static frontend assets if frontend/dist exists
-const frontendDistPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendDistPath));
+// Serve static frontend assets from possible dist locations
+const fs = require('fs');
+const possibleDistPaths = [
+  path.join(__dirname, '../frontend/dist'),
+  path.join(__dirname, 'public'),
+  path.join(__dirname, 'dist')
+];
+
+const resolvedFrontendPath = possibleDistPaths.find(p => fs.existsSync(path.join(p, 'index.html'))) || possibleDistPaths[0];
+app.use(express.static(resolvedFrontendPath));
 
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
@@ -51,8 +58,7 @@ app.use('/api/*', (req, res) => {
 
 // Root / SPA wildcard route fallback (serves index.html for React Router or API Status)
 app.get('*', (req, res) => {
-  const fs = require('fs');
-  const indexPath = path.join(frontendDistPath, 'index.html');
+  const indexPath = path.join(resolvedFrontendPath, 'index.html');
   if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
   }
@@ -67,7 +73,7 @@ app.get('*', (req, res) => {
 
   res.status(404).json({
     success: false,
-    message: `Resource ${req.originalUrl} not found. Ensure frontend is built or check the API route.`
+    message: `Resource ${req.originalUrl} not found. Build frontend using 'npm run build' or check the API route.`
   });
 });
 
