@@ -52,11 +52,23 @@ const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Insert user with both hashed and plaintext password (as requested by admin)
-    const [result] = await db.query(
-      'INSERT INTO users (full_name, email, mobile, password_hash, plaintext_password, marketing_consent) VALUES (?, ?, ?, ?, ?, ?)',
-      [fullName, email, mobile, passwordHash, password, marketingConsent || false]
-    );
+    // Insert user with fallback for plaintext_password column if absent
+    let result;
+    try {
+      [result] = await db.query(
+        'INSERT INTO users (full_name, email, mobile, password_hash, plaintext_password, marketing_consent) VALUES (?, ?, ?, ?, ?, ?)',
+        [fullName, email, mobile, passwordHash, password, marketingConsent || false]
+      );
+    } catch (insertErr) {
+      if (insertErr.code === 'ER_BAD_FIELD_ERROR') {
+        [result] = await db.query(
+          'INSERT INTO users (full_name, email, mobile, password_hash, marketing_consent) VALUES (?, ?, ?, ?, ?)',
+          [fullName, email, mobile, passwordHash, marketingConsent || false]
+        );
+      } else {
+        throw insertErr;
+      }
+    }
 
     const insertId = result.insertId;
     const userIdString = `USR${100000 + insertId}`;
@@ -76,8 +88,16 @@ const registerUser = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Database error occurred during registration' });
+    console.error('Registration error:', error);
+    let msg = 'Database error occurred during registration';
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      msg = 'Database tables not initialized. Please import database/schema.sql into phpMyAdmin.';
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+      msg = 'Database connection failed. Please check MySQL credentials in .env.';
+    } else if (error.message) {
+      msg = `Database error: ${error.message}`;
+    }
+    res.status(500).json({ success: false, message: msg });
   }
 };
 
@@ -88,11 +108,13 @@ const loginUser = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Please provide email/user ID and password' });
   }
 
+  const cleanIdentifier = identifier.trim();
+
   try {
-    // Find user by email or user_id
+    // Find user by email or user_id (case-insensitive)
     const [users] = await db.query(
-      'SELECT * FROM users WHERE email = ? OR user_id = ? LIMIT 1',
-      [identifier, identifier]
+      'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(user_id) = LOWER(?) LIMIT 1',
+      [cleanIdentifier, cleanIdentifier]
     );
 
     if (users.length === 0) {
@@ -128,8 +150,18 @@ const loginUser = async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Database error occurred during login' });
+    console.error('User login error:', error);
+    let msg = 'Database error occurred during login';
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      msg = 'Database tables not initialized. Please import database/schema.sql into phpMyAdmin.';
+    } else if (error.code === 'ECONNREFUSED' || error.code === 'ER_ACCESS_DENIED_ERROR') {
+      msg = 'Database connection failed. Please check MySQL credentials in .env.';
+    } else if (error.code === 'ER_BAD_DB_ERROR') {
+      msg = 'Database name not found. Please verify DB_NAME in .env.';
+    } else if (error.message) {
+      msg = `Database error: ${error.message}`;
+    }
+    res.status(500).json({ success: false, message: msg });
   }
 };
 
