@@ -2,9 +2,11 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'ghx_protein_auth_jwt_secret_key_2026';
+
 // Generate JWT Token
 const generateToken = (id, user_id, email, full_name) => {
-  return jwt.sign({ id, user_id, email, full_name }, process.env.JWT_SECRET, {
+  return jwt.sign({ id, user_id, email, full_name }, JWT_SECRET, {
     expiresIn: '30d',
   });
 };

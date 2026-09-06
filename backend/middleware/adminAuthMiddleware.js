@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'ghx_protein_auth_jwt_secret_key_2026';
+
 const adminProtect = async (req, res, next) => {
   let token;
 
@@ -10,7 +12,7 @@ const adminProtect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
       
       // Ensure the token belongs to an admin
       if (!decoded.isAdmin) {

@@ -2,6 +2,8 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'ghx_protein_auth_jwt_secret_key_2026';
+
 const loginAdmin = async (req, res) => {
   const { email, password } = req.body;
 
@@ -9,11 +11,29 @@ const loginAdmin = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Please provide email and password' });
   }
 
+  const cleanEmail = email.trim();
+
   try {
-    const [admins] = await db.query('SELECT * FROM admins WHERE email = ? LIMIT 1', [email]);
+    // Check if admins table has any rows; if empty, auto-create initial admins
+    const [countResult] = await db.query('SELECT COUNT(*) as cnt FROM admins');
+    if (countResult[0].cnt === 0) {
+      const defaultHash = await bcrypt.hash('Admin@12345', 10);
+      await db.query(
+        'INSERT INTO admins (admin_id, name, email, password_hash) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+        [
+          'ADM-001', 'System Administrator', 'contact@globalhorizonexim.co.in', defaultHash,
+          'ADM-002', 'Admin Local', 'admin@protein.local', defaultHash
+        ]
+      );
+    }
+
+    const [admins] = await db.query(
+      'SELECT * FROM admins WHERE LOWER(email) = LOWER(?) OR admin_id = ? LIMIT 1',
+      [cleanEmail, cleanEmail]
+    );
 
     if (admins.length === 0) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const admin = admins[0];
@@ -25,12 +45,12 @@ const loginAdmin = async (req, res) => {
     const isMatch = await bcrypt.compare(password, admin.password_hash);
 
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const token = jwt.sign(
       { id: admin.id, email: admin.email, isAdmin: true },
-      process.env.JWT_SECRET,
+      JWT_SECRET,
       { expiresIn: '8h' }
     );
 
@@ -45,8 +65,13 @@ const loginAdmin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Admin login error:', error.message);
-    res.status(500).json({ success: false, message: 'Server error during admin login' });
+    console.error('Admin login error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.code === 'ER_NO_SUCH_TABLE'
+        ? 'Database tables not initialized. Please import schema.sql into phpMyAdmin.'
+        : `Database error: ${error.message}`
+    });
   }
 };
 
