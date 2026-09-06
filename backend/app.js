@@ -37,11 +37,25 @@ app.use('/api/admin/verification-history', adminVerificationHistoryRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/labels', labelRoutes);
 
+// Serve static frontend assets if frontend/dist exists
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendDistPath));
+
 // 404 Handler for undefined API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     success: false,
     message: `API endpoint ${req.originalUrl} not found`
+  });
+});
+
+// SPA wildcard route fallback (serves index.html for React Router)
+app.get('*', (req, res) => {
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).send('Not Found');
+    }
   });
 });
 
@@ -55,3 +69,4 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
+
