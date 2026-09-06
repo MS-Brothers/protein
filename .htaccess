@@ -1,0 +1,18 @@
+﻿<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve uploaded files from backend
+  RewriteRule ^uploads/(.*)$ backend/uploads/ [L]
+
+  # Route to static frontend files if they exist in frontend/dist
+  RewriteCond %{DOCUMENT_ROOT}/frontend/dist/ -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/frontend/dist/ -d
+  RewriteRule ^(.*)$ frontend/dist/ [L]
+
+  # SPA Fallback: Route all other web routes to frontend/dist/index.html
+  RewriteCond %{REQUEST_URI} !^/api
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /frontend/dist/index.html [L]
+</IfModule>

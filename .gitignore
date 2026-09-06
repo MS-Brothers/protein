@@ -9,10 +9,7 @@ node_modules
 !**/.env.example
 uploads/
 **/uploads/
-dist/
-**/dist/
-build/
-**/build/
+!frontend/dist/
 *.log
 **/*.log
 .DS_Store
