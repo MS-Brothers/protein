@@ -17,7 +17,7 @@ const loginAdmin = async (req, res) => {
     // Check if admins table has any rows; if empty, auto-create initial admins
     const [countResult] = await db.query('SELECT COUNT(*) as cnt FROM admins');
     if (countResult[0].cnt === 0) {
-      const defaultHash = await bcrypt.hash('Admin@12345', 10);
+      const defaultHash = await bcrypt.hash('Mayur@2004', 10);
       await db.query(
         'INSERT INTO admins (admin_id, name, email, password_hash) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
         [

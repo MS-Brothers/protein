@@ -57,12 +57,12 @@ CREATE TABLE IF NOT EXISTS admins (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Seed initial default administrators (Password: Admin@12345)
+-- Seed initial default administrators (Password: Mayur@2004)
 INSERT INTO admins (admin_id, name, email, password_hash)
 VALUES 
-('ADM-001', 'System Administrator', 'contact@globalhorizonexim.co.in', '$2b$10$EERccvhsDtxVFaojvQmmXeyQI87V6vIuffnKeScPEUORXDq67RC7K'),
-('ADM-002', 'Admin Local', 'admin@protein.local', '$2b$10$EERccvhsDtxVFaojvQmmXeyQI87V6vIuffnKeScPEUORXDq67RC7K')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+('ADM-001', 'System Administrator', 'contact@globalhorizonexim.co.in', '$2b$10$vhS4mQW4l9l42tSlQmSBkO81qILxVAf09dRYUFHLTzK2xkbmISowO'),
+('ADM-002', 'Admin Local', 'admin@protein.local', '$2b$10$vhS4mQW4l9l42tSlQmSBkO81qILxVAf09dRYUFHLTzK2xkbmISowO')
+ON DUPLICATE KEY UPDATE password_hash=VALUES(password_hash), name=VALUES(name);
 
 
 CREATE TABLE IF NOT EXISTS product_labels (
