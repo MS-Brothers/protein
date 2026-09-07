@@ -9,6 +9,7 @@ const adminAuthCodesRoutes = require('./routes/adminAuthCodesRoutes');
 const adminVerificationHistoryRoutes = require('./routes/adminVerificationHistoryRoutes');
 const adminUsersRoutes = require('./routes/adminUsersRoutes');
 const labelRoutes = require('./routes/labelRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 const path = require('path');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/verification', verificationRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/admin/auth-codes', adminAuthCodesRoutes);

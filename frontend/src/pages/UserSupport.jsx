@@ -1,19 +1,77 @@
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/UserNavbar';
+import { AuthContext } from '../context/AuthContext';
+import { getApiUrl } from '../config/api';
 
 function UserSupport() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ subject: '', message: '' });
-  const [submitted, setSubmitted] = useState(false);
+  const { user, token } = useContext(AuthContext);
 
-  const handleSubmit = (e) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    subject: '',
+    message: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Prefill user details if logged in
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: prev.name || user.full_name || '',
+        email: prev.email || user.email || '',
+        phone: prev.phone || user.mobile || ''
+      }));
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({ subject: '', message: '' });
-    }, 3000);
+    setLoading(true);
+    setErrorMsg('');
+    setSubmitted(false);
+
+    try {
+      const response = await fetch(getApiUrl('/api/contact'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          subject: formData.subject,
+          message: formData.message,
+          userId: user?.user_id || null
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSubmitted(true);
+        setFormData(prev => ({
+          ...prev,
+          subject: '',
+          message: ''
+        }));
+      } else {
+        setErrorMsg(data.message || 'Failed to send message. Please try again.');
+      }
+    } catch (err) {
+      console.error('Support form submission error:', err);
+      setErrorMsg('Network error. Unable to reach the server. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -107,7 +165,7 @@ function UserSupport() {
 
             {/* Email Card */}
             <a 
-              href="mailto:globalhorizonexiim@gmail.com"
+              href="mailto:akshay44x@gmail.com"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -132,7 +190,7 @@ function UserSupport() {
                   Email Us
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block' }}>
-                  globalhorizonexiim@gmail.com
+                  akshay44x@gmail.com
                 </span>
               </div>
             </a>
@@ -163,16 +221,65 @@ function UserSupport() {
               Send Us a Message
             </h3>
             <p style={{ margin: '0 0 1.25rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-              Have an issue with a batch or seal? Fill out the quick form below:
+              Have an issue with a batch or seal? Fill out the quick form below and our team will respond directly:
             </p>
 
             {submitted && (
-              <div className="alert alert-success">
-                Thank you! Your message has been received. Our support team will get back to you shortly.
+              <div className="alert alert-success" style={{ marginBottom: '1.25rem' }}>
+                ✓ Thank you! Your message has been sent to our support desk (<strong>akshay44x@gmail.com</strong>). Our team will get back to you shortly.
+              </div>
+            )}
+
+            {errorMsg && (
+              <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
+                {errorMsg}
               </div>
             )}
 
             <form onSubmit={handleSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Your Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    className="modern-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Your Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    className="modern-input"
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Mobile Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. +91 9876543210"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="modern-input"
+                  />
+                </div>
+              </div>
+
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                   Subject / Batch Number
@@ -202,8 +309,13 @@ function UserSupport() {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ borderRadius: '10px' }}>
-                Send Message
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                style={{ borderRadius: '10px', minWidth: '150px' }}
+                disabled={loading}
+              >
+                {loading ? 'Sending Message...' : 'Send Message'}
               </button>
             </form>
           </div>
