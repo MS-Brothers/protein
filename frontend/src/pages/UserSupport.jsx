@@ -165,7 +165,7 @@ function UserSupport() {
 
             {/* Email Card */}
             <a 
-              href="mailto:akshay44x@gmail.com"
+              href="mailto:globalhorizonexiim@gmail.com"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -190,7 +190,7 @@ function UserSupport() {
                   Email Us
                 </span>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', display: 'block' }}>
-                  akshay44x@gmail.com
+                  globalhorizonexiim@gmail.com
                 </span>
               </div>
             </a>
@@ -226,7 +226,7 @@ function UserSupport() {
 
             {submitted && (
               <div className="alert alert-success" style={{ marginBottom: '1.25rem' }}>
-                ✓ Thank you! Your message has been sent to our support desk (<strong>akshay44x@gmail.com</strong>). Our team will get back to you shortly.
+                ✓ Thank you! Your message has been sent to our support desk (<strong>globalhorizonexiim@gmail.com</strong>). Our team will get back to you shortly.
               </div>
             )}
 

@@ -123,7 +123,7 @@ const sendPasswordResetEmail = async (toEmail, userName, resetToken) => {
 const sendContactFormEmail = async ({ name, email, phone, subject, message, userId }) => {
   try {
     const transporter = createTransporter();
-    const recipientEmail = process.env.SUPPORT_EMAIL || 'akshay44x@gmail.com';
+    const recipientEmail = process.env.SUPPORT_EMAIL || 'globalhorizonexiim@gmail.com';
     const smtpUser = process.env.SMTP_USER || 'contact@globalhorizonexim.co.in';
     const fromAddress = process.env.EMAIL_FROM || `"Global Horizon Exim Support" <${smtpUser}>`;
 

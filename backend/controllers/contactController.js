@@ -1,7 +1,7 @@
 const { sendContactFormEmail } = require('../services/emailService');
 
 /**
- * Handle contact form submissions and send email notification to akshay44x@gmail.com
+ * Handle contact form submissions and send email notification to globalhorizonexiim@gmail.com
  */
 const submitContactForm = async (req, res) => {
   try {
