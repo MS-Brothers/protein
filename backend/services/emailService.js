@@ -134,6 +134,7 @@ const sendContactFormEmail = async ({ name, email, phone, subject, message, user
       to: recipientEmail,
       replyTo: email ? `${name || 'Customer'} <${email}>` : undefined,
       subject: `[Support Inquiry] ${subject || 'New message from Contact Form'}`,
+      text: `New Support Inquiry - Global Horizon Exim\n\nFrom: ${name || 'N/A'}\nEmail: ${email || 'N/A'}\nPhone: ${phone || 'N/A'}\nUser ID: ${userId || 'N/A'}\nSubject: ${subject || 'General Inquiry'}\n\nMessage:\n${message}\n`,
       html: `
         <!DOCTYPE html>
         <html>
