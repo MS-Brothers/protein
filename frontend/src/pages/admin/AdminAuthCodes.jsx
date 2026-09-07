@@ -211,33 +211,77 @@ const AdminAuthCodes = () => {
             padding: '1.5rem',
             boxShadow: 'var(--shadow-md)',
             maxWidth: '750px',
-            margin: '0 auto'
+            margin: '0 auto 2rem auto'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
-            <span className="badge badge-success">Success</span>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: 'var(--success-text)' }}>
-              Batch Import Completed
-            </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-success">Success</span>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                Batch Import Summary & Statistics
+              </h3>
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {new Date().toLocaleTimeString()}
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.75rem' }}>
-            <div style={{ background: 'var(--table-row-hover)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', display: 'block' }}>Total</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--text-primary)' }}>{summary.totalRows}</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+            {/* Total Rows */}
+            <div style={{ background: 'var(--table-row-hover)', padding: '14px 12px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                Total Rows
+              </span>
+              <span style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--text-primary)', display: 'block' }}>
+                {summary.totalRows ?? 0}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>In Upload File</span>
             </div>
-            <div style={{ background: 'var(--success-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--success-text)', fontWeight: '700', display: 'block' }}>Imported</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--success)' }}>{summary.imported}</span>
+
+            {/* Imported */}
+            <div style={{ background: 'var(--success-light)', padding: '14px 12px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--success)', fontWeight: '700', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                Imported
+              </span>
+              <span style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--success)', display: 'block' }}>
+                {summary.imported ?? 0}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--success)', fontWeight: '600' }}>Active in DB</span>
             </div>
-            <div style={{ background: 'var(--warning-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--warning-text)', fontWeight: '700', display: 'block' }}>Duplicates</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--warning)' }}>{summary.duplicates}</span>
+
+            {/* Duplicates */}
+            <div style={{ background: 'var(--warning-light)', padding: '14px 12px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--warning)', fontWeight: '700', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                Duplicates
+              </span>
+              <span style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--warning)', display: 'block' }}>
+                {summary.totalDuplicates ?? (summary.excelDuplicates + summary.existingCodes) ?? 0}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--warning)', fontWeight: '600' }}>
+                {summary.excelDuplicates || 0} in file &bull; {summary.existingCodes || 0} in DB
+              </span>
             </div>
-            <div style={{ background: 'var(--danger-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--danger-text)', fontWeight: '700', display: 'block' }}>Invalid</span>
-              <span style={{ fontSize: '1.4rem', fontWeight: '800', color: 'var(--danger)' }}>{summary.invalid}</span>
+
+            {/* Failed / Invalid */}
+            <div style={{ background: 'var(--danger-light)', padding: '14px 12px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--danger)', fontWeight: '700', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>
+                Failed / Invalid
+              </span>
+              <span style={{ fontSize: '1.6rem', fontWeight: '800', color: 'var(--danger)', display: 'block' }}>
+                {summary.failedTotal ?? (summary.invalid + summary.failed) ?? 0}
+              </span>
+              <span style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: '600' }}>
+                {summary.invalid || 0} invalid &bull; {summary.failed || 0} error
+              </span>
             </div>
+          </div>
+
+          {/* Detailed breakdown footer note */}
+          <div style={{ background: 'var(--table-row-hover)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+            <span><strong>Breakdown:</strong> {summary.imported || 0} New Inserted</span>
+            <span><strong>File Duplicates:</strong> {summary.excelDuplicates || 0}</span>
+            <span><strong>Existing in DB:</strong> {summary.existingCodes || 0}</span>
+            <span><strong>Invalid Format:</strong> {summary.invalid || 0}</span>
           </div>
         </div>
       )}

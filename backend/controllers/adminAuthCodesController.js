@@ -92,16 +92,21 @@ const uploadExcel = async (req, res) => {
       [excelDuplicates, existingCodes, imported, 'COMPLETED', uploadId]
     );
 
+    const totalDuplicates = excelDuplicates + existingCodes;
+    const failedTotal = invalid + failed;
+
     return res.status(200).json({
       success: true,
       message: 'Import Successful',
       summary: {
         totalRows,
         imported,
+        totalDuplicates,
         excelDuplicates,
         existingCodes,
         invalid,
-        failed
+        failed,
+        failedTotal
       }
     });
 
@@ -113,7 +118,24 @@ const uploadExcel = async (req, res) => {
 
 const getExcelUploads = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM excel_uploads ORDER BY created_at DESC');
+    const [rows] = await db.query(`
+      SELECT 
+        id, 
+        file_name, 
+        total_entries,
+        total_entries AS total_rows, 
+        imported_count,
+        imported_count AS successful_imports, 
+        (excel_duplicates + existing_codes) AS duplicate_codes,
+        excel_duplicates,
+        existing_codes,
+        GREATEST(0, total_entries - imported_count - excel_duplicates - existing_codes) AS failed_imports,
+        status, 
+        created_at, 
+        updated_at 
+      FROM excel_uploads 
+      ORDER BY created_at DESC
+    `);
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('Error fetching excel uploads:', error);
@@ -124,7 +146,24 @@ const getExcelUploads = async (req, res) => {
 const getExcelUploadById = async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await db.query('SELECT * FROM excel_uploads WHERE id = ?', [id]);
+    const [rows] = await db.query(`
+      SELECT 
+        id, 
+        file_name, 
+        total_entries,
+        total_entries AS total_rows, 
+        imported_count,
+        imported_count AS successful_imports, 
+        (excel_duplicates + existing_codes) AS duplicate_codes,
+        excel_duplicates,
+        existing_codes,
+        GREATEST(0, total_entries - imported_count - excel_duplicates - existing_codes) AS failed_imports,
+        status, 
+        created_at, 
+        updated_at 
+      FROM excel_uploads 
+      WHERE id = ?
+    `, [id]);
     
     if (rows.length === 0) {
       return res.status(404).json({ success: false, message: 'Upload not found' });

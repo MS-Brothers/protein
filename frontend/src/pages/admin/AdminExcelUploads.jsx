@@ -137,125 +137,246 @@ const AdminExcelUploads = () => {
                 <th>Total Rows</th>
                 <th>Imported</th>
                 <th>Duplicates</th>
+                <th>Failed</th>
+                <th>Status</th>
                 <th>Upload Date</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {uploads.map((upload) => (
-                <tr key={upload.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg style={{ width: '18px', height: '18px', color: 'var(--success)', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                        {upload.file_name}
+              {uploads.map((upload) => {
+                const total = upload.total_rows ?? upload.total_entries ?? 0;
+                const imported = upload.successful_imports ?? upload.imported_count ?? 0;
+                const fileDups = upload.excel_duplicates ?? 0;
+                const dbDups = upload.existing_codes ?? 0;
+                const totalDups = upload.duplicate_codes ?? (fileDups + dbDups);
+                const failed = upload.failed_imports ?? Math.max(0, total - imported - totalDups);
+
+                return (
+                  <tr key={upload.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg style={{ width: '18px', height: '18px', color: 'var(--primary)', flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div>
+                          <span style={{ fontWeight: '700', color: 'var(--text-primary)', display: 'block' }}>
+                            {upload.file_name}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID #{upload.id}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: '800', fontSize: '14px', color: 'var(--text-primary)' }}>{total}</span>
+                    </td>
+                    <td>
+                      <span className="badge badge-success" style={{ fontWeight: '700' }}>
+                        {imported}
                       </span>
-                    </div>
-                  </td>
-                  <td>
-                    <span style={{ fontWeight: '700' }}>{upload.total_rows}</span>
-                  </td>
-                  <td>
-                    <span className="badge badge-success">
-                      {upload.successful_imports}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={upload.duplicate_codes > 0 ? "badge badge-warning" : "badge badge-neutral"}>
-                      {upload.duplicate_codes}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                    {new Date(upload.created_at).toLocaleString()}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      <button
-                        onClick={() => fetchUploadDetails(upload.id)}
-                        className="btn btn-outline"
-                        style={{ minHeight: '30px', padding: '4px 10px', fontSize: '12px', borderRadius: '6px' }}
-                      >
-                        Details
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirmId(upload.id)}
-                        className="btn btn-danger"
-                        style={{ minHeight: '30px', padding: '4px 10px', fontSize: '12px', borderRadius: '6px' }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <span className={totalDups > 0 ? "badge badge-warning" : "badge badge-neutral"} style={{ fontWeight: '700' }}>
+                        {totalDups}
+                      </span>
+                      {totalDups > 0 && (
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          File: {fileDups} | DB: {dbDups}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span className={failed > 0 ? "badge badge-danger" : "badge badge-neutral"} style={{ fontWeight: '700' }}>
+                        {failed}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={upload.status === 'COMPLETED' ? "badge badge-success" : "badge badge-warning"}>
+                        {upload.status || 'COMPLETED'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      {new Date(upload.created_at).toLocaleString()}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        <button
+                          onClick={() => fetchUploadDetails(upload.id)}
+                          className="btn btn-outline"
+                          style={{ minHeight: '30px', padding: '4px 10px', fontSize: '12px', borderRadius: '6px' }}
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(upload.id)}
+                          className="btn btn-danger"
+                          style={{ minHeight: '30px', padding: '4px 10px', fontSize: '12px', borderRadius: '6px' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
       {/* Upload Details Modal */}
-      {selectedUpload && (
-        <div className="modal-backdrop">
-          <div className="modal-box">
-            <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: 'var(--text-primary)' }}>
-                Upload Batch Breakdown
-              </h3>
-              <button 
-                onClick={() => setSelectedUpload(null)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
-                <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div style={{ marginBottom: '1.25rem' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>File Name</span>
-                <p style={{ margin: '2px 0 0 0', fontWeight: '700', fontSize: '1rem', color: 'var(--text-primary)' }}>{selectedUpload.file_name}</p>
+      {selectedUpload && (() => {
+        const total = selectedUpload.total_rows ?? selectedUpload.total_entries ?? 0;
+        const imported = selectedUpload.successful_imports ?? selectedUpload.imported_count ?? 0;
+        const fileDups = selectedUpload.excel_duplicates ?? 0;
+        const dbDups = selectedUpload.existing_codes ?? 0;
+        const totalDups = selectedUpload.duplicate_codes ?? (fileDups + dbDups);
+        const failed = selectedUpload.failed_imports ?? Math.max(0, total - imported - totalDups);
+        
+        const importedPct = total > 0 ? Math.round((imported / total) * 100) : 0;
+        const dupsPct = total > 0 ? Math.round((totalDups / total) * 100) : 0;
+        const failedPct = total > 0 ? Math.round((failed / total) * 100) : 0;
+
+        return (
+          <div className="modal-backdrop">
+            <div className="modal-box" style={{ maxWidth: '620px' }}>
+              <div className="modal-header">
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '800', color: 'var(--text-primary)' }}>
+                    Excel Batch Import Details
+                  </h3>
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Upload Batch #{selectedUpload.id} &bull; {selectedUpload.status || 'COMPLETED'}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setSelectedUpload(null)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ background: 'var(--table-row-hover)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', display: 'block' }}>Total Rows</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--text-primary)' }}>{selectedUpload.total_rows}</span>
+              <div className="modal-body">
+                {/* File Header Info */}
+                <div style={{ background: 'var(--table-row-hover)', borderRadius: '12px', padding: '12px 16px', marginBottom: '1.25rem', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>File Name</span>
+                    <span style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--text-primary)' }}>{selectedUpload.file_name}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700', display: 'block' }}>Upload Date</span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{new Date(selectedUpload.created_at).toLocaleString()}</span>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--success-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--success-text)', fontWeight: '700', display: 'block' }}>Imported</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--success)' }}>{selectedUpload.successful_imports}</span>
+
+                {/* 4 Main KPI Cards: Total Rows, Imported, Duplicates, Failed */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {/* Total Rows */}
+                  <div style={{ background: 'var(--table-row-hover)', padding: '14px 10px', borderRadius: '12px', textAlign: 'center', border: '1px solid var(--border-color)' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Total Rows</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-primary)', display: 'block' }}>{total}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>100%</span>
+                  </div>
+
+                  {/* Imported */}
+                  <div style={{ background: 'var(--success-light)', padding: '14px 10px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--success)', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Imported</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--success)', display: 'block' }}>{imported}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700' }}>{importedPct}%</span>
+                  </div>
+
+                  {/* Duplicates */}
+                  <div style={{ background: 'var(--warning-light)', padding: '14px 10px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--warning)', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Duplicates</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--warning)', display: 'block' }}>{totalDups}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--warning)', fontWeight: '700' }}>{dupsPct}%</span>
+                  </div>
+
+                  {/* Failed */}
+                  <div style={{ background: 'var(--danger-light)', padding: '14px 10px', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                    <span style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--danger)', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Failed</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--danger)', display: 'block' }}>{failed}</span>
+                    <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: '700' }}>{failedPct}%</span>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--warning-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--warning-text)', fontWeight: '700', display: 'block' }}>Duplicates</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--warning)' }}>{selectedUpload.duplicate_codes}</span>
+
+                {/* Visual Ratio Progress Bar */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    <span>Row Distribution Ratio</span>
+                    <span>{imported} Imported &bull; {totalDups} Duplicates &bull; {failed} Failed</span>
+                  </div>
+                  <div style={{ height: '8px', width: '100%', borderRadius: '9999px', background: 'var(--table-row-hover)', display: 'flex', overflow: 'hidden' }}>
+                    <div style={{ width: `${importedPct}%`, background: 'var(--success)', transition: 'width 0.3s' }} title={`Imported: ${imported} (${importedPct}%)`}></div>
+                    <div style={{ width: `${dupsPct}%`, background: 'var(--warning)', transition: 'width 0.3s' }} title={`Duplicates: ${totalDups} (${dupsPct}%)`}></div>
+                    <div style={{ width: `${failedPct}%`, background: 'var(--danger)', transition: 'width 0.3s' }} title={`Failed: ${failed} (${failedPct}%)`}></div>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--danger-light)', padding: '12px', borderRadius: '10px', textAlign: 'center' }}>
-                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--danger-text)', fontWeight: '700', display: 'block' }}>Failed</span>
-                  <span style={{ fontSize: '1.3rem', fontWeight: '800', color: 'var(--danger)' }}>{selectedUpload.failed_imports}</span>
+
+                {/* Breakdown Itemized List */}
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div style={{ background: 'var(--table-row-hover)', padding: '10px 14px', borderBottom: '1px solid var(--border-color)', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Itemized Breakdown
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="dot dot-success" style={{ width: '8px', height: '8px' }}></span>
+                          <strong>New Codes Successfully Inserted</strong>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '700', color: 'var(--success)' }}>
+                          {imported}
+                        </td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="dot dot-warning" style={{ width: '8px', height: '8px' }}></span>
+                          <span>Duplicates inside Excel file itself</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
+                          {fileDups}
+                        </td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="dot dot-warning" style={{ width: '8px', height: '8px' }}></span>
+                          <span>Already existing in Database prior to upload</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '700', color: 'var(--warning)' }}>
+                          {dbDups}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '10px 14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="dot dot-error" style={{ width: '8px', height: '8px' }}></span>
+                          <span>Invalid format / Empty / Failed rows</span>
+                        </td>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: '700', color: 'var(--danger)' }}>
+                          {failed}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
-              <div>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: '700' }}>Uploaded At</span>
-                <p style={{ margin: '2px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  {new Date(selectedUpload.created_at).toLocaleString()}
-                </p>
+              <div className="modal-footer">
+                <button 
+                  onClick={() => setSelectedUpload(null)}
+                  className="btn btn-primary"
+                  style={{ borderRadius: '8px', minWidth: '100px' }}
+                >
+                  Close
+                </button>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                onClick={() => setSelectedUpload(null)}
-                className="btn btn-primary"
-                style={{ borderRadius: '8px' }}
-              >
-                Close
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId && (
