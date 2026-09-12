@@ -28,8 +28,6 @@ async function seedAdmin() {
       return;
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(plainPassword, salt);
 
     await connection.query(
       'INSERT INTO admins (admin_id, name, email, password_hash) VALUES (?, ?, ?, ?)',
