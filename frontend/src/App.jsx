@@ -23,6 +23,7 @@ import LabelEditor from './pages/admin/LabelEditor';
 import AdminVerificationHistory from './pages/admin/AdminVerificationHistory';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminProfile from './pages/admin/AdminProfile';
+import AdminLabelsUsed from './pages/admin/AdminLabelsUsed';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 import './App.css';
@@ -97,6 +98,11 @@ function App() {
             <Route path="/admin/profile" element={
               <AdminProtectedRoute>
                 <AdminProfile />
+              </AdminProtectedRoute>
+            } />
+            <Route path="/admin/labels-used" element={
+              <AdminProtectedRoute>
+                <AdminLabelsUsed />
               </AdminProtectedRoute>
             } />
           </Routes>

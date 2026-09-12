@@ -18,13 +18,18 @@ const getDashboardStats = async (req, res) => {
     const [invalidRows] = await db.query('SELECT COUNT(*) as count FROM verification_history WHERE verification_status = "INVALID"');
     const totalInvalid = invalidRows[0].count;
 
+    // 5. Total Labels Used
+    const [labelsUsedRows] = await db.query('SELECT COUNT(*) as count FROM authentication_codes WHERE label_used = TRUE');
+    const totalLabelsUsed = labelsUsedRows[0].count;
+
     res.status(200).json({
       success: true,
       data: {
         totalCodes,
         totalGenuine,
         totalAlreadyVerified,
-        totalInvalid
+        totalInvalid,
+        totalLabelsUsed
       }
     });
   } catch (error) {
@@ -33,6 +38,27 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+const getUsedLabels = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        ac.authentication_code,
+        ac.label_used_at,
+        eu.file_name
+      FROM authentication_codes ac
+      LEFT JOIN excel_uploads eu ON ac.upload_id = eu.id
+      WHERE ac.label_used = TRUE
+      ORDER BY ac.label_used_at DESC
+    `);
+    
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error fetching used labels:', error);
+    res.status(500).json({ success: false, message: 'Server Error fetching used labels' });
+  }
+};
+
 module.exports = {
-  getDashboardStats
+  getDashboardStats,
+  getUsedLabels
 };

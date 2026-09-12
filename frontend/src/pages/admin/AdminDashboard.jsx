@@ -9,7 +9,8 @@ function AdminDashboard() {
     totalCodes: 0,
     totalGenuine: 0,
     totalAlreadyVerified: 0,
-    totalInvalid: 0
+    totalInvalid: 0,
+    totalLabelsUsed: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -129,6 +130,30 @@ function AdminDashboard() {
           <div className="kpi-icon-box" style={{ background: 'var(--danger-light)', color: 'var(--danger)' }}>
             <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Labels Used */}
+        <div 
+          className="kpi-card" 
+          style={{ borderLeft: '4px solid #6366f1', cursor: 'pointer' }}
+          onClick={() => navigate('/admin/labels-used')}
+        >
+          <div>
+            <span style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+              Labels Used
+            </span>
+            <div style={{ fontSize: '2rem', fontWeight: '800', color: '#6366f1', marginTop: '4px' }}>
+              {loading ? '...' : (stats.totalLabelsUsed || 0).toLocaleString()}
+            </div>
+            <span style={{ fontSize: '12px', color: '#6366f1', fontWeight: '600' }}>
+              Labels generated
+            </span>
+          </div>
+          <div className="kpi-icon-box" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
+            <svg style={{ width: '24px', height: '24px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
             </svg>
           </div>
         </div>

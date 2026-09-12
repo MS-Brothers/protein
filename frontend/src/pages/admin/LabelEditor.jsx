@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import ThemeToggle from '../../components/ThemeToggle';
+import { getApiUrl } from '../../config/api';
 import './LabelEditor.css';
 
 const fieldsList = [
@@ -22,7 +24,7 @@ const textStyle = {
   color: "#050a1f"
 };
 
-const TEMPLATE_SRC = '/label-editor/template.jpeg?v=no_qr_clean';
+const TEMPLATE_SRC = '/label-editor/template_1.png';
 
 export default function LabelEditor() {
   const [activeMobileTab, setActiveMobileTab] = useState('editor'); // 'editor' | 'preview'
@@ -37,23 +39,39 @@ export default function LabelEditor() {
     manufacturingDate: '',
     expiryDate: '',
     monthOfImport: '',
-    mrp: ''
+    mrp: '',
+    authCode: ''
   });
 
   const [calibration, setCalibration] = useState({
-    x: 1132,
-    y: 304,
-    spacing: 47,
-    fontSize: 27,
-    mrpX: 1191,
-    mrpY: 736,
+    x: 992,
+    y: 238,
+    spacing: 42,
+    fontSize: 28,
+    mrpX: 1044,
+    mrpY: 636,
     maskStyle: 'stretch',
-    showDebug: false
+    showDebug: false,
+    qrX: 1468,
+    qrY: 151,
+    qrSize: 422,
+    codeX: 1570,
+    codeY: 623,
+    codeFontSize: 34
   });
 
   const canvasRef = useRef(null);
   const imageRef = useRef(new Image());
+  const qrImageRef = useRef(new Image());
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [qrLoaded, setQrLoaded] = useState(false);
+  
+  const [excelUploads, setExcelUploads] = useState([]);
+  const [selectedUploadId, setSelectedUploadId] = useState('');
+  const [authCodes, setAuthCodes] = useState([]);
+  const [isFetchingUploads, setIsFetchingUploads] = useState(false);
+  const [isFetchingCodes, setIsFetchingCodes] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,7 +81,7 @@ export default function LabelEditor() {
       setImageLoaded(true);
     };
     img.onerror = () => {
-      img.src = getApiUrl('/uploads/templates/template.jpeg');
+      img.src = '/label-editor/template_1.png';
     };
     img.src = TEMPLATE_SRC;
 
@@ -72,11 +90,83 @@ export default function LabelEditor() {
     }
   }, []);
 
+  // Fetch excel uploads on mount
+  useEffect(() => {
+    const fetchUploads = async () => {
+      setIsFetchingUploads(true);
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(getApiUrl('/api/admin/auth-codes/excel-uploads'), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const json = await res.json();
+        if (json.success) {
+          setExcelUploads(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch excel uploads', err);
+      } finally {
+        setIsFetchingUploads(false);
+      }
+    };
+    fetchUploads();
+  }, []);
+
+  // Fetch auth codes when excel upload changes
+  useEffect(() => {
+    if (!selectedUploadId) {
+      setAuthCodes([]);
+      setData(prev => ({ ...prev, authCode: '' }));
+      return;
+    }
+
+    const fetchCodes = async () => {
+      setIsFetchingCodes(true);
+      try {
+        const token = localStorage.getItem('adminToken');
+        const res = await fetch(getApiUrl(`/api/admin/auth-codes/excel-uploads/${selectedUploadId}/codes`), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const json = await res.json();
+        if (json.success) {
+          setAuthCodes(json.data);
+          setData(prev => ({ ...prev, authCode: '' }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch auth codes', err);
+      } finally {
+        setIsFetchingCodes(false);
+      }
+    };
+    fetchCodes();
+  }, [selectedUploadId]);
+
+  useEffect(() => {
+    const generateQr = async () => {
+      try {
+        const url = data.authCode 
+          ? `https://globalhorizonexim.co.in/login?code=${encodeURIComponent(data.authCode)}` 
+          : 'https://globalhorizonexim.co.in/login';
+        const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
+        const img = qrImageRef.current;
+        img.onload = () => setQrLoaded(prev => !prev);
+        img.src = qrDataUrl;
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    generateQr();
+  }, [data.authCode]);
+
   useEffect(() => {
     if (imageLoaded) {
       renderCanvas();
     }
-  }, [data, calibration, imageLoaded]);
+  }, [data, calibration, imageLoaded, qrLoaded]);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -91,21 +181,21 @@ export default function LabelEditor() {
     }));
   };
 
-  const applyMask = (ctx, img, x, y, w, style) => {
-    const maskX = x - 10;
-    const maskY = y - 22;
-    const maskH = 28;
-    const maskW = Math.max(w, 260);
+  const applyMask = (ctx, img, x, y, w, style, fontSize) => {
+    const maskX = x - 4;
+    const maskY = y - fontSize * 0.85;
+    const maskH = fontSize * 1.1;
+    const maskW = Math.max(w, 80);
 
     if (style === 'solid') {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(maskX, maskY, maskW, maskH);
     } else if (style === 'stretch') {
-      const sourceX = Math.max(0, maskX - 25);
+      const sourceX = maskX + maskW - 2; // Take from far right where it's blank
       const sourceY = maskY;
       ctx.drawImage(
         img, 
-        sourceX, sourceY, 15, maskH, 
+        sourceX, sourceY, 1, maskH, 
         maskX, maskY, maskW, maskH 
       );
     }
@@ -125,23 +215,25 @@ export default function LabelEditor() {
     ctx.drawImage(img, 0, 0);
 
     const showDebug = forceShowDebug !== null ? forceShowDebug : calibration.showDebug;
-    const { x: startX, y: startY, spacing, fontSize, mrpX, mrpY, maskStyle } = calibration;
+    const { x: startX, y: startY, spacing, fontSize, mrpX, mrpY, maskStyle, qrX, qrY, qrSize, codeX, codeY, codeFontSize } = calibration;
 
     fieldsList.forEach((field, index) => {
+      if (field.id === 'authCode') return;
+      
       const val = data[field.id];
       
       let posX = startX;
       let posY = startY + (index * spacing);
-      let maskWidth = 220; 
+      let maskWidth = 240; 
       
       if (field.id === 'mrp') {
         posX = mrpX;
         posY = mrpY;
-        maskWidth = 90;
+        maskWidth = 180;
       }
 
       if (maskStyle !== 'none') {
-        applyMask(ctx, img, posX, posY, maskWidth, maskStyle);
+        applyMask(ctx, img, posX, posY, maskWidth, maskStyle, fontSize);
       }
 
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
@@ -160,6 +252,55 @@ export default function LabelEditor() {
         ctx.fill();
       }
     });
+
+    // Draw QR Code
+    if (qrImageRef.current.complete && qrImageRef.current.naturalWidth > 0) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
+      ctx.drawImage(qrImageRef.current, qrX, qrY, qrSize, qrSize);
+    }
+
+    // Draw Authentication Code
+    const codeVal = data.authCode;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(codeX - 5, codeY - codeFontSize * 1.2, 330, codeFontSize * 1.6); 
+
+    ctx.font = `bold ${codeFontSize}px Arial, sans-serif`;
+    const displayCode = codeVal ? codeVal : '';
+    if (displayCode) {
+      ctx.fillStyle = '#d32f2f'; // Red color for CODE
+      ctx.fillText(displayCode, codeX, codeY);
+    }
+
+    if (showDebug) {
+      ctx.fillStyle = 'blue';
+      ctx.beginPath();
+      ctx.arc(codeX, codeY, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(qrX, qrY, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  const markCodeAsUsed = async () => {
+    if (!data.authCode) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(getApiUrl(`/api/admin/auth-codes/${data.authCode}/label-used`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAuthCodes(prev => prev.filter(c => c.authentication_code !== data.authCode));
+        setData(prev => ({ ...prev, authCode: '' }));
+      }
+    } catch (err) {
+      console.error('Failed to mark code as used:', err);
+    }
   };
 
   const downloadPNG = () => {
@@ -173,6 +314,7 @@ export default function LabelEditor() {
     link.click();
     
     if (wasDebug) renderCanvas(true);
+    markCodeAsUsed();
   };
 
   const downloadPDF = () => {
@@ -194,6 +336,7 @@ export default function LabelEditor() {
     pdf.save('label_updated.pdf');
     
     if (wasDebug) renderCanvas(true);
+    markCodeAsUsed();
   };
 
   return (
@@ -248,6 +391,53 @@ export default function LabelEditor() {
         
         {/* Fields inputs */}
         <div className="le-inputs-container">
+          <div className="le-input-group">
+            <label>Select Excel File</label>
+            {isFetchingUploads ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0' }}>Loading uploads...</p>
+            ) : excelUploads.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0' }}>No Excel files uploaded yet.</p>
+            ) : (
+              <select 
+                value={selectedUploadId} 
+                onChange={(e) => setSelectedUploadId(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', marginTop: '4px' }}
+              >
+                <option value="">-- Select Excel File --</option>
+                {excelUploads.map(upload => (
+                  <option key={upload.id} value={upload.id}>
+                    {upload.file_name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="le-input-group">
+            <label>Select Authentication Code</label>
+            {!selectedUploadId ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0' }}>Please select an Excel file first.</p>
+            ) : isFetchingCodes ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0' }}>Loading codes...</p>
+            ) : authCodes.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0' }}>No authentication codes available in this Excel file.</p>
+            ) : (
+              <select 
+                value={data.authCode} 
+                onChange={handleInputChange}
+                id="authCode"
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', marginTop: '4px' }}
+              >
+                <option value="">-- Select Code --</option>
+                {authCodes.map(code => (
+                  <option key={code.id} value={code.authentication_code}>
+                    {code.authentication_code}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
           {fieldsList.map(field => (
             <div className="le-input-group" key={field.id}>
               <label htmlFor={field.id}>{field.label}</label>
@@ -269,19 +459,19 @@ export default function LabelEditor() {
           </h3>
           <div className="le-input-group">
             <label>Global X: <span>{calibration.x}</span></label>
-            <input type="range" id="x" min="800" max="1300" value={calibration.x} onChange={handleCalibrationChange} />
+            <input type="range" id="x" min="400" max="2500" value={calibration.x} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>Global Y: <span>{calibration.y}</span></label>
-            <input type="range" id="y" min="150" max="400" value={calibration.y} onChange={handleCalibrationChange} />
+            <input type="range" id="y" min="50" max="1000" value={calibration.y} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>Row Spacing: <span>{calibration.spacing}</span></label>
-            <input type="range" id="spacing" min="30" max="60" value={calibration.spacing} onChange={handleCalibrationChange} />
+            <input type="range" id="spacing" min="15" max="100" value={calibration.spacing} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>Font Size: <span>{calibration.fontSize}px</span></label>
-            <input type="range" id="fontSize" min="10" max="40" value={calibration.fontSize} onChange={handleCalibrationChange} />
+            <input type="range" id="fontSize" min="10" max="60" value={calibration.fontSize} onChange={handleCalibrationChange} />
           </div>
 
           <h3 style={{ fontSize: '12px', textTransform: 'uppercase', margin: '10px 0 6px 0', color: "var(--text-muted)", fontWeight: '700' }}>
@@ -289,11 +479,11 @@ export default function LabelEditor() {
           </h3>
           <div className="le-input-group">
             <label>MRP X: <span>{calibration.mrpX}</span></label>
-            <input type="range" id="mrpX" min="800" max="1300" value={calibration.mrpX} onChange={handleCalibrationChange} />
+            <input type="range" id="mrpX" min="400" max="2500" value={calibration.mrpX} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>MRP Y: <span>{calibration.mrpY}</span></label>
-            <input type="range" id="mrpY" min="400" max="900" value={calibration.mrpY} onChange={handleCalibrationChange} />
+            <input type="range" id="mrpY" min="200" max="1500" value={calibration.mrpY} onChange={handleCalibrationChange} />
           </div>
 
           <div className="le-input-group" style={{ marginTop: '8px' }}>
@@ -303,6 +493,34 @@ export default function LabelEditor() {
               <option value="stretch">Holographic Stretch</option>
               <option value="none">No Mask</option>
             </select>
+          </div>
+
+          <h3 style={{ fontSize: '12px', textTransform: 'uppercase', margin: '10px 0 6px 0', color: "var(--text-muted)", fontWeight: '700' }}>
+            QR & Code Position (Independent)
+          </h3>
+          <div className="le-input-group">
+            <label>QR X: <span>{calibration.qrX}</span></label>
+            <input type="range" id="qrX" min="800" max="2500" value={calibration.qrX} onChange={handleCalibrationChange} />
+          </div>
+          <div className="le-input-group">
+            <label>QR Y: <span>{calibration.qrY}</span></label>
+            <input type="range" id="qrY" min="50" max="1500" value={calibration.qrY} onChange={handleCalibrationChange} />
+          </div>
+          <div className="le-input-group">
+            <label>QR Size: <span>{calibration.qrSize}</span></label>
+            <input type="range" id="qrSize" min="50" max="1000" value={calibration.qrSize} onChange={handleCalibrationChange} />
+          </div>
+          <div className="le-input-group">
+            <label>Code X: <span>{calibration.codeX}</span></label>
+            <input type="range" id="codeX" min="800" max="2500" value={calibration.codeX} onChange={handleCalibrationChange} />
+          </div>
+          <div className="le-input-group">
+            <label>Code Y: <span>{calibration.codeY}</span></label>
+            <input type="range" id="codeY" min="200" max="1500" value={calibration.codeY} onChange={handleCalibrationChange} />
+          </div>
+          <div className="le-input-group">
+            <label>Code Font Size: <span>{calibration.codeFontSize}px</span></label>
+            <input type="range" id="codeFontSize" min="10" max="60" value={calibration.codeFontSize} onChange={handleCalibrationChange} />
           </div>
         </div>
         

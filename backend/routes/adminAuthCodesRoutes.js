@@ -7,7 +7,9 @@ const {
   getExcelUploads,
   getExcelUploadById,
   deleteExcelUpload,
-  clearAllAuthCodes
+  clearAllAuthCodes,
+  getExcelUploadCodes,
+  markLabelUsed
 } = require('../controllers/adminAuthCodesController');
 
 // Configure multer for memory storage
@@ -39,8 +41,14 @@ router.get('/excel-uploads', adminProtect, getExcelUploads);
 // GET /api/admin/excel-uploads/:id
 router.get('/excel-uploads/:id', adminProtect, getExcelUploadById);
 
+// GET /api/admin/excel-uploads/:uploadId/codes
+router.get('/excel-uploads/:uploadId/codes', adminProtect, getExcelUploadCodes);
+
 // DELETE /api/admin/excel-uploads/:id
 router.delete('/excel-uploads/:id', adminProtect, deleteExcelUpload);
+
+// POST /api/admin/auth-codes/:codeStr/label-used
+router.post('/:codeStr/label-used', adminProtect, markLabelUsed);
 
 // Error handler for multer
 router.use((err, req, res, next) => {

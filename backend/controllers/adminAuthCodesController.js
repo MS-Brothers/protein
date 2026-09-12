@@ -176,6 +176,57 @@ const getExcelUploadById = async (req, res) => {
   }
 };
 
+const getExcelUploadCodes = async (req, res) => {
+  try {
+    const { uploadId } = req.params;
+    
+    // Validate upload exists
+    const [upload] = await db.query('SELECT id FROM excel_uploads WHERE id = ?', [uploadId]);
+    if (upload.length === 0) {
+      return res.status(404).json({ success: false, message: 'Upload not found' });
+    }
+
+    const [rows] = await db.query(
+      'SELECT id, authentication_code FROM authentication_codes WHERE upload_id = ? AND label_used = FALSE ORDER BY id ASC',
+      [uploadId]
+    );
+    
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error fetching codes for upload:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const markLabelUsed = async (req, res) => {
+  try {
+    const { codeStr } = req.params;
+    
+    const [existing] = await db.query(
+      'SELECT id, label_used FROM authentication_codes WHERE authentication_code = ?', 
+      [codeStr]
+    );
+
+    if (existing.length === 0) {
+      return res.status(404).json({ success: false, message: 'Authentication code not found' });
+    }
+
+    if (existing[0].label_used) {
+      return res.status(400).json({ success: false, message: 'This code has already been used for a label' });
+    }
+
+    await db.query(
+      'UPDATE authentication_codes SET label_used = TRUE, label_used_at = NOW() WHERE authentication_code = ?',
+      [codeStr]
+    );
+
+    res.json({ success: true, message: 'Code marked as used successfully' });
+  } catch (error) {
+    console.error('Error marking label as used:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 const deleteExcelUpload = async (req, res) => {
   try {
     const { id } = req.params;
@@ -217,5 +268,7 @@ module.exports = {
   getExcelUploads,
   getExcelUploadById,
   deleteExcelUpload,
-  clearAllAuthCodes
+  clearAllAuthCodes,
+  getExcelUploadCodes,
+  markLabelUsed
 };
