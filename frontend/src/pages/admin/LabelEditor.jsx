@@ -24,7 +24,7 @@ const textStyle = {
   color: "#050a1f"
 };
 
-const TEMPLATE_SRC = '/label-editor/template_1.png';
+const TEMPLATE_SRC = '/label-editor/template.png';
 
 export default function LabelEditor() {
   const [activeMobileTab, setActiveMobileTab] = useState('editor'); // 'editor' | 'preview'
@@ -77,12 +77,25 @@ export default function LabelEditor() {
   useEffect(() => {
     const img = imageRef.current;
     img.crossOrigin = "anonymous";
+
+    const fallbacks = [
+      '/label-editor/template.png',
+      '/label-editor/template_1.png',
+      '/label-editor/template.jpeg'
+    ];
+    let fallbackIdx = 0;
+
     img.onload = () => {
       setImageLoaded(true);
     };
+
     img.onerror = () => {
-      img.src = '/label-editor/template_1.png';
+      fallbackIdx++;
+      if (fallbackIdx < fallbacks.length) {
+        img.src = fallbacks[fallbackIdx];
+      }
     };
+
     img.src = TEMPLATE_SRC;
 
     if (img.complete && img.naturalWidth > 0) {
