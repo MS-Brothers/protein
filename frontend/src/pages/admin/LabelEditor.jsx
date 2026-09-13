@@ -43,17 +43,17 @@ export default function LabelEditor() {
   });
 
   const [calibration, setCalibration] = useState({
-    x: 992,
-    y: 238,
-    spacing: 42,
-    fontSize: 28,
-    mrpX: 1044,
-    mrpY: 636,
-    maskStyle: 'stretch',
+    x: 842,
+    y: 182,
+    spacing: 35,
+    fontSize: 19,
+    mrpX: 849,
+    mrpY: 510,
+    maskStyle: 'none',
     showDebug: false,
-    codeX: 1570,
-    codeY: 623,
-    codeFontSize: 34
+    codeX: 1297,
+    codeY: 503,
+    codeFontSize: 31
   });
 
   const canvasRef = useRef(null);
