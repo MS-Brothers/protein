@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
-import QRCode from 'qrcode';
 import ThemeToggle from '../../components/ThemeToggle';
 import { getApiUrl } from '../../config/api';
 import './LabelEditor.css';
@@ -52,9 +51,6 @@ export default function LabelEditor() {
     mrpY: 636,
     maskStyle: 'stretch',
     showDebug: false,
-    qrX: 1468,
-    qrY: 151,
-    qrSize: 422,
     codeX: 1570,
     codeY: 623,
     codeFontSize: 34
@@ -62,9 +58,7 @@ export default function LabelEditor() {
 
   const canvasRef = useRef(null);
   const imageRef = useRef(new Image());
-  const qrImageRef = useRef(new Image());
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [qrLoaded, setQrLoaded] = useState(false);
   
   const [excelUploads, setExcelUploads] = useState([]);
   const [selectedUploadId, setSelectedUploadId] = useState('');
@@ -159,27 +153,10 @@ export default function LabelEditor() {
   }, [selectedUploadId]);
 
   useEffect(() => {
-    const generateQr = async () => {
-      try {
-        const url = data.authCode 
-          ? `https://globalhorizonexim.co.in/login?code=${encodeURIComponent(data.authCode)}` 
-          : 'https://globalhorizonexim.co.in/login';
-        const qrDataUrl = await QRCode.toDataURL(url, { width: 400, margin: 1, color: { dark: '#000000', light: '#ffffff' } });
-        const img = qrImageRef.current;
-        img.onload = () => setQrLoaded(prev => !prev);
-        img.src = qrDataUrl;
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    generateQr();
-  }, [data.authCode]);
-
-  useEffect(() => {
     if (imageLoaded) {
       renderCanvas();
     }
-  }, [data, calibration, imageLoaded, qrLoaded]);
+  }, [data, calibration, imageLoaded]);
 
   const handleInputChange = (e) => {
     const { id, value } = e.target;
@@ -228,7 +205,7 @@ export default function LabelEditor() {
     ctx.drawImage(img, 0, 0);
 
     const showDebug = forceShowDebug !== null ? forceShowDebug : calibration.showDebug;
-    const { x: startX, y: startY, spacing, fontSize, mrpX, mrpY, maskStyle, qrX, qrY, qrSize, codeX, codeY, codeFontSize } = calibration;
+    const { x: startX, y: startY, spacing, fontSize, mrpX, mrpY, maskStyle, codeX, codeY, codeFontSize } = calibration;
 
     fieldsList.forEach((field, index) => {
       if (field.id === 'authCode') return;
@@ -266,32 +243,23 @@ export default function LabelEditor() {
       }
     });
 
-    // Draw QR Code
-    if (qrImageRef.current.complete && qrImageRef.current.naturalWidth > 0) {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 4);
-      ctx.drawImage(qrImageRef.current, qrX, qrY, qrSize, qrSize);
-    }
-
-    // Draw Authentication Code
+    // Draw Selected Authentication Code for print
     const codeVal = data.authCode;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(codeX - 5, codeY - codeFontSize * 1.2, 330, codeFontSize * 1.6); 
-
-    ctx.font = `bold ${codeFontSize}px Arial, sans-serif`;
-    const displayCode = codeVal ? codeVal : '';
-    if (displayCode) {
-      ctx.fillStyle = '#d32f2f'; // Red color for CODE
-      ctx.fillText(displayCode, codeX, codeY);
+    if (codeVal && codeVal.trim() !== '') {
+      if (maskStyle !== 'none') {
+        applyMask(ctx, img, codeX, codeY, 320, maskStyle, codeFontSize);
+      }
+      ctx.font = `bold ${codeFontSize}px Arial, sans-serif`;
+      ctx.fillStyle = '#d32f2f'; // Highlight red color for Code
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(codeVal, codeX, codeY);
     }
 
     if (showDebug) {
       ctx.fillStyle = 'blue';
       ctx.beginPath();
       ctx.arc(codeX, codeY, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(qrX, qrY, 4, 0, Math.PI * 2);
       ctx.fill();
     }
   };
@@ -509,31 +477,19 @@ export default function LabelEditor() {
           </div>
 
           <h3 style={{ fontSize: '12px', textTransform: 'uppercase', margin: '10px 0 6px 0', color: "var(--text-muted)", fontWeight: '700' }}>
-            QR & Code Position (Independent)
+            Selected Authentication Code Position (Print)
           </h3>
           <div className="le-input-group">
-            <label>QR X: <span>{calibration.qrX}</span></label>
-            <input type="range" id="qrX" min="800" max="2500" value={calibration.qrX} onChange={handleCalibrationChange} />
-          </div>
-          <div className="le-input-group">
-            <label>QR Y: <span>{calibration.qrY}</span></label>
-            <input type="range" id="qrY" min="50" max="1500" value={calibration.qrY} onChange={handleCalibrationChange} />
-          </div>
-          <div className="le-input-group">
-            <label>QR Size: <span>{calibration.qrSize}</span></label>
-            <input type="range" id="qrSize" min="50" max="1000" value={calibration.qrSize} onChange={handleCalibrationChange} />
-          </div>
-          <div className="le-input-group">
             <label>Code X: <span>{calibration.codeX}</span></label>
-            <input type="range" id="codeX" min="800" max="2500" value={calibration.codeX} onChange={handleCalibrationChange} />
+            <input type="range" id="codeX" min="400" max="2500" value={calibration.codeX} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>Code Y: <span>{calibration.codeY}</span></label>
-            <input type="range" id="codeY" min="200" max="1500" value={calibration.codeY} onChange={handleCalibrationChange} />
+            <input type="range" id="codeY" min="50" max="1500" value={calibration.codeY} onChange={handleCalibrationChange} />
           </div>
           <div className="le-input-group">
             <label>Code Font Size: <span>{calibration.codeFontSize}px</span></label>
-            <input type="range" id="codeFontSize" min="10" max="60" value={calibration.codeFontSize} onChange={handleCalibrationChange} />
+            <input type="range" id="codeFontSize" min="10" max="80" value={calibration.codeFontSize} onChange={handleCalibrationChange} />
           </div>
         </div>
         
