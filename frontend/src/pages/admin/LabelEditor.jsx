@@ -288,10 +288,41 @@ export default function LabelEditor() {
     if (!canvasRef.current) return;
     const wasDebug = calibration.showDebug;
     if (wasDebug) renderCanvas(false);
+
+    const sourceCanvas = canvasRef.current;
+
+    // Standard 4" x 2" label dimensions (2400 x 1200 px at 600 DPI for crystal clear barcode/QR print)
+    const targetW = 2400;
+    const targetH = 1200;
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = targetW;
+    exportCanvas.height = targetH;
+    const ctx = exportCanvas.getContext('2d');
+
+    // Clean white background for thermal / product packaging
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    // Maintain aspect ratio and center vertically on 4x2 label
+    const imgAspect = sourceCanvas.width / sourceCanvas.height;
+    let drawW = targetW;
+    let drawH = targetW / imgAspect;
+    let offsetX = 0;
+    let offsetY = (targetH - drawH) / 2;
+
+    if (drawH > targetH) {
+      drawH = targetH;
+      drawW = targetH * imgAspect;
+      offsetX = (targetW - drawW) / 2;
+      offsetY = 0;
+    }
+
+    ctx.drawImage(sourceCanvas, offsetX, offsetY, drawW, drawH);
     
     const link = document.createElement('a');
     link.download = 'label_updated.png';
-    link.href = canvasRef.current.toDataURL('image/png');
+    link.href = exportCanvas.toDataURL('image/png');
     link.click();
     
     if (wasDebug) renderCanvas(true);
@@ -304,16 +335,32 @@ export default function LabelEditor() {
     if (wasDebug) renderCanvas(false);
     
     const canvas = canvasRef.current;
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const orientation = canvas.width > canvas.height ? 'l' : 'p';
+    const imgData = canvas.toDataURL('image/png');
     
+    // Standard 4" x 2" label PDF
     const pdf = new jsPDF({
-      orientation: orientation,
-      unit: 'px',
-      format: [canvas.width, canvas.height]
+      orientation: 'landscape',
+      unit: 'in',
+      format: [4, 2]
     });
+
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = pdf.internal.pageSize.getHeight();
+    const imgAspect = canvas.width / canvas.height;
+
+    let renderW = pdfW;
+    let renderH = pdfW / imgAspect;
+    let offsetX = 0;
+    let offsetY = (pdfH - renderH) / 2;
+
+    if (renderH > pdfH) {
+      renderH = pdfH;
+      renderW = pdfH * imgAspect;
+      offsetX = (pdfW - renderW) / 2;
+      offsetY = 0;
+    }
     
-    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+    pdf.addImage(imgData, 'PNG', offsetX, offsetY, renderW, renderH);
     pdf.save('label_updated.pdf');
     
     if (wasDebug) renderCanvas(true);
