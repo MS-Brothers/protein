@@ -291,9 +291,9 @@ export default function LabelEditor() {
 
     const sourceCanvas = canvasRef.current;
 
-    // Standard 4" x 2" label dimensions (2400 x 1200 px at 600 DPI for crystal clear barcode/QR print)
-    const targetW = 2400;
-    const targetH = 1200;
+    // 2.95" x 1.96" label dimensions at 300 DPI
+    const targetW = 885;
+    const targetH = 588;
 
     const exportCanvas = document.createElement('canvas');
     exportCanvas.width = targetW;
@@ -337,11 +337,11 @@ export default function LabelEditor() {
     const canvas = canvasRef.current;
     const imgData = canvas.toDataURL('image/png');
     
-    // Standard 4" x 2" label PDF
+    // 2.95" x 1.96" label PDF
     const pdf = new jsPDF({
       orientation: 'landscape',
       unit: 'in',
-      format: [4, 2]
+      format: [2.95, 1.96]
     });
 
     const pdfW = pdf.internal.pageSize.getWidth();
