@@ -232,7 +232,7 @@ export default function LabelEditor() {
       ctx.textBaseline = 'alphabetic';
       
       if (val && val.trim() !== '') {
-        ctx.fillText(val, posX, posY);
+        ctx.fillText(val.toUpperCase(), posX, posY);
       }
       
       if (showDebug) {
